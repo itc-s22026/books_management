@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const { validationResult, check } = require('express-validator');
-
+const { calcHash, generateSalt } = require('../util/auth')
 
 
 
@@ -12,10 +12,10 @@ const prisma = new PrismaClient();
 /**
  * ログイン状態チェック
  */
-router.get("/", (req, res, next) => {
+router.get("/check", (req, res, next) => {
   if (!req.user) {
     // 未ログインなら、Error オブジェクトを作って、ステータスを設定してスロー
-    const err = new Error("unauthenticated");
+    const err = new Error("NG");
     err.status = 401;
     throw err;
   }
@@ -44,7 +44,7 @@ router.get("/login", (req, res) => {
 /**
  * ユーザ新規作成
  */
-router.post("/signup", [
+router.post("/register", [
   // 入力値チェックミドルウェア
   check("email").notEmpty({ ignore_whitespace: true }),
   check("name").notEmpty({ ignore_whitespace: true }),
@@ -80,23 +80,16 @@ router.post("/signup", [
   }
 });
 
-router.get("/signup", (req, res) => {
+router.get("/register", (req, res) => {
   res.render("signup"); // ユーザ登録ページを表示するための処理を追加する
 });
 
-// ランダムな文字列を生成する関数
-function generateSalt() {
-  const crypto = require('crypto');
-  return crypto.randomBytes(16).toString('hex');
-}
+router.get("/logout", (req, res, next) =>  {
+  req.logout((err) => {
+    res.status(200).json({message: "OK"});
+  });
+});
 
-// パスワードをハッシュ化する関数
-function calcHash(password, salt) {
-  const crypto = require('crypto');
-  const hash = crypto.createHash('sha256');
-  hash.update(password + salt);
-  return hash.digest('hex');
-}
 
 
 module.exports = router;

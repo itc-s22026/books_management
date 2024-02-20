@@ -10,7 +10,7 @@ datasource db {
 
 model users {
   id       BigInt  @id @default(autoincrement())
-  email    String  @db.VarChar(256)
+  email    String  @unique @db.VarChar(256)
   name     String? @db.VarChar(100)
   password Bytes   @db.TinyBlob
   salt     Bytes   @db.TinyBlob
