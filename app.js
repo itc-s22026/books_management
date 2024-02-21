@@ -43,7 +43,7 @@ BigInt.prototype.toJSON = function () {
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
-// app.use("/book", booksRouter);
+app.use("/book", booksRouter);
 app.use("/admin", adminRouter);
 
 // 404

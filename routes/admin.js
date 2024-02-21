@@ -30,7 +30,7 @@ router.use(isAdmin);
 router.post('/book/create', async (req, res) => {
     try {
         const { isbn13, title, author, publishDate } = req.body;
-        const newBook = await prisma.books.create({
+        const Books = await prisma.books.create({
             data: {
                 isbn13,
                 title,
@@ -38,7 +38,7 @@ router.post('/book/create', async (req, res) => {
                 publishDate
             }
         });
-        res.status(201).json({ result: 'OK' });
+        res.status(201).json({ result: 'OK', Books });
     } catch (error) {
         console.error('書籍情報の登録に失敗しました:', error);
         res.status(400).json({ result: 'NG' });
