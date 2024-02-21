@@ -9,6 +9,8 @@ const cors = require('cors');
 
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
+const booksRouter = require('./routes/book');
+const adminRouter = require('./routes/admin');
 const { authConfig } = require("./util/auth");
 // const { authConfig } = require('./authConfig'); // authConfigをインポートする
 
@@ -41,6 +43,8 @@ BigInt.prototype.toJSON = function () {
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
+// app.use("/book", booksRouter);
+app.use("/admin", adminRouter);
 
 // 404
 app.use((req, res, next) => {
@@ -59,7 +63,7 @@ const errorHandler = (err, req, res, next) => {
   let message = "Internal Server Error";
   if (err.status === 401) {
     // ここに来る場合は、未認証によるエラーなのでメッセージを書き換える。
-    message = "unauthenticated";
+    message = "NG";
   } else {
     // エラーの詳細はクライアントに返さないので、ここで吐き出しておく。
     console.error(err);
