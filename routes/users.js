@@ -14,26 +14,29 @@ const prisma = new PrismaClient();
  */
 router.get("/check", (req, res, next) => {
   if (!req.user) {
-    // 未ログインなら、Error オブジェクトを作って、ステータスを設定してスロー
-    const err = new Error("NG");
+    // 未ログインの場合
+    const err = new Error("Unauthorized");
     err.status = 401;
-    throw err;
+    return next(err); // エラーハンドリングミドルウェアにエラーを渡す
   }
-  if (req.user) {
-    // 管理者かどうかをチェック
-    const isAdmin = req.user.isAdmin; // 仮定される isAdmin プロパティ
 
-    // レスポンスを返す
+  // ユーザーがログインしている場合
+  const isAdmin = req.user.isAdmin; // isAdminプロパティをチェック
+
+  // レスポンスを返す
+  if (isAdmin) {
     res.json({
       result: "OK",
-      isAdmin: isAdmin
+      isAdmin: "true"
     });
   } else {
-    res.status(500).json({
-      message: "チェックできませんでした。"
-    })
+    res.json({
+      result: "OK"
+    });
   }
 });
+
+
 
 
 
