@@ -19,11 +19,23 @@ router.get("/check", (req, res, next) => {
     err.status = 401;
     throw err;
   }
-  // ここに来れるなら、ログイン済み。
-  res.json({
-    message: "logged in"
-  });
+  if (req.user) {
+    // 管理者かどうかをチェック
+    const isAdmin = req.user.isAdmin; // 仮定される isAdmin プロパティ
+
+    // レスポンスを返す
+    res.json({
+      result: "OK",
+      isAdmin: isAdmin
+    });
+  } else {
+    res.status(500).json({
+      message: "チェックできませんでした。"
+    })
+  }
 });
+
+
 
 /**
  * ユーザ認証
@@ -31,15 +43,24 @@ router.get("/check", (req, res, next) => {
 router.post("/login", passport.authenticate("local", {
   failWithError: true // passport によるログインに失敗したらエラーを発生させる
 }), (req, res, next) => {
-  // ここに来れるなら、ログインは成功していることになる。
-  res.json({
-    message: "OK"
-  });
+  // ログインが成功した場合
+  if (req.user) {
+    // 管理者かどうかをチェック
+    const isAdmin = req.user.isAdmin; // 仮定される isAdmin プロパティ
+
+    // レスポンスを返す
+    res.json({
+      result: "OK",
+      isAdmin: isAdmin // true/false を返す
+    });
+  } else {
+    // ログインに失敗した場合は、ここに到達しないはず
+    res.status(500).json({
+      message: "ログインに失敗しました"
+    });
+  }
 });
 
-router.get("/login", (req, res) => {
-  res.render("login"); // ユーザ登録ページを表示するための処理を追加する
-});
 
 /**
  * ユーザ新規作成
@@ -52,7 +73,7 @@ router.post("/register", [
 ], async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({ result: "NG" });
   }
 
   const { email, name, password } = req.body;
@@ -60,6 +81,19 @@ router.post("/register", [
   const hashed = calcHash(password, salt);
 
   try {
+    // メールアドレスが重複していないかチェック
+    const existingUser = await prisma.users.findUnique({
+      where: {
+        email: email
+      }
+    });
+
+    if (existingUser) {
+      // 重複している場合は409エラーを返す
+      return res.status(409).json({ result: "NG" });
+    }
+
+    // 重複がない場合は新規登録を行う
     await prisma.users.create({
       data: {
         email,
@@ -68,21 +102,13 @@ router.post("/register", [
         salt: salt
       }
     });
-    return res.status(201).json({ message: "created!" });
+    return res.status(201).json({ result: "created" });
   } catch (e) {
-    switch (e.code) {
-      case "P2002":
-        return res.status(400).json({ message: "username is already registered" });
-      default:
-        console.error(e);
-        return res.status(500).json({ message: "unknown error" });
-    }
+    console.error(e);
+    return res.status(500).json({ result: "NG" });
   }
 });
 
-router.get("/register", (req, res) => {
-  res.render("signup"); // ユーザ登録ページを表示するための処理を追加する
-});
 
 router.get("/logout", (req, res, next) =>  {
   req.logout((err) => {

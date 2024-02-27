@@ -11,6 +11,7 @@ const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const booksRouter = require('./routes/book');
 const adminRouter = require('./routes/admin');
+const rentalRouter = require('./routes/rental')
 const { authConfig } = require("./util/auth");
 // const { authConfig } = require('./authConfig'); // authConfigをインポートする
 
@@ -29,6 +30,8 @@ app.use(session({
 }));
 // passport
 app.use(passport.authenticate("session"));
+app.use(passport.initialize()); // passportの初期化
+app.use(passport.session()); // セッションの使用
 authConfig(passport);
 // cors
 app.use(cors({
@@ -42,9 +45,10 @@ BigInt.prototype.toJSON = function () {
 
 
 app.use("/", indexRouter);
-app.use("/users", usersRouter);
+app.use("/user", usersRouter);
 app.use("/book", booksRouter);
 app.use("/admin", adminRouter);
+app.use("/rental", rentalRouter);
 
 // 404
 app.use((req, res, next) => {

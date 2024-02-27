@@ -68,7 +68,7 @@ const authConfig = (passport) => {
     // セッションストアに保存
     passport.serializeUser((user, done) => {
         process.nextTick(() => {
-            done(null, {id: user.id, email: user.email});
+            done(null, {id: user.id, email: user.email, isAdmin:user.isAdmin});
         });
     });
     // セッションストアから復元
