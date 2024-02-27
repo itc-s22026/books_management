@@ -6,18 +6,15 @@ const prisma = new PrismaClient();
 
 async function isAdmin(req, res, next) {
     try {
-        // ユーザがログインしていることを確認
         if (!req.user) {
             return res.status(403).json({message: 'ログインが必要です'});
         }
 
-        // ユーザが管理者であるかをデータベースから検証
         const user = await prisma.users.findUnique({where: {id: req.user.id}});
         if (!user || !user.isAdmin) {
             return res.status(403).json({message: '管理者権限が必要です'});
         }
 
-        // 管理者の場合は、次のミドルウェアに進む
         next();
     } catch (error) {
         console.error('管理者権限の確認中にエラーが発生しました:', error);
@@ -45,13 +42,10 @@ router.post('/book/create', async (req, res) => {
     }
 });
 
-// 書籍情報更新エンドポイント
 router.put('/book/update', async (req, res) => {
     try {
-        // リクエストデータから書籍情報を取得
         const { bookId, isbn13, title, author, publishDate } = req.body;
 
-        // 書籍情報を更新
         const updatedBook = await prisma.books.update({
             where: { id: bookId },
             data: {
@@ -62,25 +56,23 @@ router.put('/book/update', async (req, res) => {
             }
         });
 
-        res.status(200).json({ result: 'OK' }); // 更新成功を返す
+        res.status(200).json({ result: 'OK' });
     } catch (error) {
         console.error('書籍情報の更新に失敗しました:', error);
-        res.status(400).json({ result: 'NG' }); // エラーを返す
+        res.status(400).json({ result: 'NG' });
     }
 });
 
 router.get('/rental/current', async (req, res) => {
     try {
-        // 全ユーザの貸出中書籍一覧を取得
         const rentalBooks = await prisma.rental.findMany({
-            where: { returnDate: null }, // 返却日がnullのもの＝貸出中のものを取得
+            where: { returnDate: null },
             include: {
-                users: true, // ユーザ情報を取得
-                books: true // 書籍情報を取得
+                users: true,
+                books: true
             }
         });
 
-        // レスポンスデータを整形
         const formattedRentalBooks = rentalBooks.map(rental => ({
             rentalId: rental.id,
             userId: rental.users.id,
@@ -91,43 +83,39 @@ router.get('/rental/current', async (req, res) => {
             returnDeadline: rental.returnDeadline
         }));
 
-        res.status(200).json({ rentalBooks: formattedRentalBooks }); // 貸出中書籍一覧を返す
+        res.status(200).json({ rentalBooks: formattedRentalBooks });
     } catch (error) {
         console.error('貸出中書籍一覧の取得に失敗しました:', error);
-        res.status(500).json({ message: 'サーバーエラーが発生しました' }); // エラーを返す
+        res.status(500).json({ message: 'サーバーエラーが発生しました' });
     }
 });
 
 router.get('/rental/current/:uid', async (req, res) => {
-    const { uid } = req.params; // リクエストパラメータからユーザIDを取得
-    const userId = parseInt(uid); // 文字列から数値に変換
+    const { uid } = req.params;
+    const userId = parseInt(uid);
 
-    // 数値に変換できない場合はエラーを返す
     if (isNaN(userId)) {
         return res.status(400).json({ message: '無効なユーザIDです' });
     }
 
     try {
-        // ユーザの存在を確認
         const user = await prisma.users.findUnique({
-            where: { id: BigInt(userId) } // 数値をBigIntに変換して検索
+            where: { id: BigInt(userId) }
         });
         if (!user) {
             return res.status(404).json({ message: '指定されたユーザが見つかりません' });
         }
 
-        // ユーザの貸出中書籍一覧を取得
         const rentalBooks = await prisma.rental.findMany({
             where: {
-                userId: userId, // 数値として検索
-                returnDate: null // 返却日がnullのもの＝貸出中のものを取得
+                userId: userId,
+                returnDate: null
             },
             include: {
-                books: true // 書籍情報を取得
+                books: true
             }
         });
 
-        // レスポンスデータを整形
         const formattedRentalBooks = rentalBooks.map(rental => ({
             rentalId: rental.id,
             bookId: rental.books.id,
@@ -140,10 +128,10 @@ router.get('/rental/current/:uid', async (req, res) => {
             userId: user.id,
             userName: user.name,
             rentalBooks: formattedRentalBooks
-        }); // 貸出中書籍一覧を返す
+        });
     } catch (error) {
         console.error('特定ユーザの貸出中書籍一覧の取得に失敗しました:', error);
-        res.status(500).json({ message: 'サーバーエラーが発生しました' }); // エラーを返す
+        res.status(500).json({ message: 'サーバーエラーが発生しました' });
     }
 });
 

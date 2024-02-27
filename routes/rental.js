@@ -4,19 +4,17 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
-// userId を取得するミドルウェア
 const getUserId = (req, res, next) => {
     if (!req.user) {
         return res.status(401).json({ message: 'ユーザーが認証されていません' });
     }
 
-    // ユーザーが管理者かどうかをチェック
-    const isAdmin = req.user.isAdmin; // ユーザーオブジェクトから isAdmin を取得
+    const isAdmin = req.user.isAdmin;
     if (isAdmin) {
         return res.status(403).json({ message: '管理者権限がありません' });
     }
 
-    req.userId = req.user.id; // ユーザーオブジェクトからユーザーIDを取得
+    req.userId = req.user.id;
     next();
 };
 
@@ -28,14 +26,12 @@ router.post('/start', getUserId, async (req, res) => {
         console.log('Received bookId:', bookId);
         console.log('Received userId:', userId);
 
-        // 指定された書籍を取得
         const book = await prisma.books.findUnique({ where: { id: bookId } });
 
         if (!book) {
             return res.status(400).json({ message: '指定された書籍が見つかりません' });
         }
 
-        // 指定された書籍がすでに貸し出されているかチェック
         const existingRental = await prisma.rental.findFirst({
             where: {
                 bookId: bookId,
@@ -47,7 +43,6 @@ router.post('/start', getUserId, async (req, res) => {
             return res.status(409).json({ message: '指定された書籍はすでに貸し出されています' });
         }
 
-        // 書籍の貸し出し処理
         const newRental = await prisma.rental.create({
             data: {
                 books: { connect: { id: bookId } },
@@ -78,12 +73,11 @@ router.put('/return', getUserId, async (req, res) => {
         console.log('Received rentalId:', rentalId);
         console.log('Received userId:', userId);
 
-        // 貸出情報を取得
         const rental = await prisma.rental.findUnique({
             where: {
                 id: rentalId,
                 userId: userId,
-                returnDate: null // まだ返却されていない貸出を検索
+                returnDate: null
             }
         });
 
@@ -91,7 +85,6 @@ router.put('/return', getUserId, async (req, res) => {
             return res.status(400).json({ message: 'NG' });
         }
 
-        // 返却処理を行う
         const updatedRental = await prisma.rental.update({
             where: { id: rentalId },
             data: {
@@ -106,27 +99,25 @@ router.put('/return', getUserId, async (req, res) => {
     }
 });
 
-// GET /rental/current エンドポイント
 
 router.get('/current', getUserId, async (req, res) => {
     try {
         const userId = req.userId;
 
-        // ユーザーが現在借りている書籍の一覧を取得
         const rentalBooks = await prisma.rental.findMany({
             where: {
                 userId: userId,
-                returnDate: null // まだ返却されていない貸出情報を検索
+                returnDate: null
             },
             select: {
                 id: true,
                 bookId: true,
                 rentalDate: true,
                 returnDeadline: true,
-                books: { // booksモデルから選択するフィールドを指定
+                books: {
                     select: {
-                        title: true, // 書籍のタイトルを選択
-                        author: true // 書籍の著者を選択
+                        title: true,
+                        author: true
                     }
                 }
             }
@@ -136,13 +127,12 @@ router.get('/current', getUserId, async (req, res) => {
         const formattedBooks = rentalBooks.map(rental => ({
             rentalId: rental.id,
             bookId: rental.bookId,
-            bookName: rental.books.title, // booksモデルのタイトルを参照
-            // bookAuthor: rental.books.author, // booksモデルの著者を参照
+            bookName: rental.books.title,
+            // bookAuthor: rental.books.author,
             rentalDate: rental.rentalDate,
             returnDeadline: rental.returnDeadline
         }));
 
-        // レスポンスを返す
         res.status(200).json({ rentalBooks: formattedBooks });
     } catch (error) {
         console.error('借用書籍一覧の取得中にエラーが発生しました:', error);
@@ -154,11 +144,10 @@ router.get('/history', getUserId, async (req, res) => {
     try {
         const userId = req.userId;
 
-        // ユーザーが過去に借りていた書籍の履歴を取得
         const rentalHistory = await prisma.rental.findMany({
             where: {
                 userId: userId,
-                returnDate: { not: null } // 返却された貸出情報を検索
+                returnDate: { not: null }
             },
             select: {
                 id: true,
@@ -173,16 +162,14 @@ router.get('/history', getUserId, async (req, res) => {
             }
         });
 
-        // レスポンスデータの整形
         const formattedHistory = rentalHistory.map(rental => ({
             rentalId: rental.id,
             bookId: rental.bookId,
-            bookName: rental.books ? rental.books.title : "Unknown", // books が null でないことを確認し、title をアクセスする
+            bookName: rental.books ? rental.books.title : "Unknown",
             rentalDate: rental.rentalDate,
             returnDate: rental.returnDate
         }));
 
-        // レスポンスを返す
         res.status(200).json({ rentalHistory: formattedHistory });
     } catch (error) {
         console.error('借用書籍履歴の取得中にエラーが発生しました:', error);

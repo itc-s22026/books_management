@@ -40,38 +40,30 @@ const authConfig = (passport) => {
                 where: { email: email }
             });
             if (!user) {
-                // ユーザが存在しない場合
                 return done(null, false, { message: "Invalid username and/or password." });
             }
 
-            // パスワードのハッシュ化
             const hashedPassword = calcHash(password, user.salt);
 
-            // バイト列の長さを比較
             if (user.password.length !== hashedPassword.length) {
                 return done(null, false, { message: "Invalid username and/or password." });
             }
 
-            // ハッシュ化されたパスワードと保存されたパスワードの比較
             const passwordsMatch = crypto.timingSafeEqual(Buffer.from(user.password), hashedPassword);
             if (!passwordsMatch) {
-                // パスワードが一致しない場合
                 return done(null, false, { message: "Invalid username and/or password." });
             }
 
-            // 認証成功
             return done(null, user);
         } catch (e) {
             return done(e);
         }
     }));
-    // セッションストアに保存
     passport.serializeUser((user, done) => {
         process.nextTick(() => {
             done(null, {id: user.id, email: user.email, isAdmin:user.isAdmin});
         });
     });
-    // セッションストアから復元
     passport.deserializeUser((user, done) => {
         process.nextTick(() => {
             return done(null, user);

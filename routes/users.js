@@ -14,16 +14,13 @@ const prisma = new PrismaClient();
  */
 router.get("/check", (req, res, next) => {
   if (!req.user) {
-    // 未ログインの場合
     const err = new Error("Unauthorized");
     err.status = 401;
-    return next(err); // エラーハンドリングミドルウェアにエラーを渡す
+    return next(err);
   }
 
-  // ユーザーがログインしている場合
-  const isAdmin = req.user.isAdmin; // isAdminプロパティをチェック
+  const isAdmin = req.user.isAdmin;
 
-  // レスポンスを返す
   if (isAdmin) {
     res.json({
       result: "OK",
@@ -44,20 +41,16 @@ router.get("/check", (req, res, next) => {
  * ユーザ認証
  */
 router.post("/login", passport.authenticate("local", {
-  failWithError: true // passport によるログインに失敗したらエラーを発生させる
+  failWithError: true
 }), (req, res, next) => {
-  // ログインが成功した場合
   if (req.user) {
-    // 管理者かどうかをチェック
-    const isAdmin = req.user.isAdmin; // 仮定される isAdmin プロパティ
+    const isAdmin = req.user.isAdmin;
 
-    // レスポンスを返す
     res.json({
       result: "OK",
-      isAdmin: isAdmin // true/false を返す
+      isAdmin: isAdmin
     });
   } else {
-    // ログインに失敗した場合は、ここに到達しないはず
     res.status(500).json({
       message: "ログインに失敗しました"
     });
@@ -69,7 +62,6 @@ router.post("/login", passport.authenticate("local", {
  * ユーザ新規作成
  */
 router.post("/register", [
-  // 入力値チェックミドルウェア
   check("email").notEmpty({ ignore_whitespace: true }),
   check("name").notEmpty({ ignore_whitespace: true }),
   check("password").notEmpty({ ignore_whitespace: true })
@@ -84,7 +76,6 @@ router.post("/register", [
   const hashed = calcHash(password, salt);
 
   try {
-    // メールアドレスが重複していないかチェック
     const existingUser = await prisma.users.findUnique({
       where: {
         email: email
@@ -92,11 +83,9 @@ router.post("/register", [
     });
 
     if (existingUser) {
-      // 重複している場合は409エラーを返す
       return res.status(409).json({ result: "NG" });
     }
 
-    // 重複がない場合は新規登録を行う
     await prisma.users.create({
       data: {
         email,
