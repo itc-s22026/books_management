@@ -14,7 +14,7 @@ const prisma = new PrismaClient();
  */
 router.get("/check", (req, res, next) => {
   if (!req.user) {
-    const err = new Error("Unauthorized");
+    const err = new Error("NG");
     err.status = 401;
     return next(err);
   }
